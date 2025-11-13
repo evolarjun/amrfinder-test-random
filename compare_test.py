@@ -5,8 +5,17 @@ import pandas as pd
 import filecmp
 import os
 import subprocess
+import logging
 
 debug = True
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if debug else logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 def runcmd(*args, shell=True, capture_output=False, check=True, debug=debug):
     """run a shell command
@@ -26,7 +35,7 @@ def runcmd(*args, shell=True, capture_output=False, check=True, debug=debug):
     """
     cmd = " ".join([str(item) for item in args])
     if debug:
-        print("--- Running: " + cmd)
+        logger.debug(f"Running: {cmd}")
     return subprocess.run(cmd, shell=shell, capture_output=capture_output, check=check)
 
 def check_files_identical(file1_path, file2_path):
@@ -42,7 +51,7 @@ def check_files_identical(file1_path, file2_path):
 
     # Optional: Basic check to ensure files exist before comparison
     if not os.path.exists(file1_path) or not os.path.exists(file2_path):
-        print("Error: One or both files not found.")
+        logger.error(f"One or both files not found: {file1_path}, {file2_path}")
         return False
 
     # filecomp.cmp(f1, f2, shallow=True) is the default
@@ -67,7 +76,7 @@ args = argparser.parse_args()
 try:
     df = pd.read_csv(args.directory + '/asm_data.tab', sep='\t')
 except FileNotFoundError:
-    print(f"Error: File not found at {file_path}")
+    logger.error(f"File not found at {args.directory}/asm_data.tab")
     # Handle the error gracefully or re-raise
     raise
 
@@ -76,7 +85,7 @@ for acc in df.asm_acc:
     new = f"{args.directory}/amrfinder_new/{acc}.amrfinder_new"
     # check if different
     if check_files_identical(old, new):
-        print("--- files for acc are identical ---")
+        logger.info(f"Files for {acc} are identical")
     else:
         runcmd(f"vimdiff {old} {new}")
     

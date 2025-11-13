@@ -9,6 +9,15 @@ import os
 import subprocess
 import pandas as pd
 from glob import glob
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if debug else logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 query = """
@@ -42,7 +51,7 @@ def runcmd(*args, shell=True, capture_output=False, check=True, debug=debug):
     """
     cmd = " ".join([str(item) for item in args])
     if debug:
-        print("--- Running: " + cmd)
+        logger.info(f"Running: {cmd}")
     return subprocess.run(cmd, shell=shell, capture_output=capture_output, check=check)
 
 def taxgroup2orgopt(taxgroup):
@@ -82,7 +91,7 @@ if not os.path.exists(prefix + '/asm_data.tab'):
     from google.cloud import bigquery
 
     client = bigquery.Client()
-    print("--- Running Query to get list of isolates ---")
+    logger.info("Running Query to get list of isolates")
     query_job = client.query(query)  # API request - starts the query
     rows = query_job.result()  # Wait for the query to finish and get the results
     column_names = [field.name for field in rows.schema]
@@ -96,7 +105,7 @@ if not os.path.exists(prefix + '/asm_data.tab'):
             print("\t".join(values), file=fh)
 
 else:
-    print("--- Found directory " + prefix + " not querying for assemblies again ---")
+    logger.info(f"Found directory {prefix}, not querying for assemblies again")
 
 
 # 2. Download those assemblies using Datasets (or using FTP?)
@@ -115,7 +124,7 @@ if not os.path.exists(prefix + '/ncbi_dataset/data'):
     runcmd(f"cd {prefix}; pwd; unzip ncbi_dataset.zip")
     runcmd(f"datasets rehydrate --directory {prefix}")
 else:
-    print("--- Found " + prefix + '/ncbi_dataset/data so skipping downloads ---')
+    logger.info(f"Found {prefix}/ncbi_dataset/data, skipping downloads")
 
 
 # 3. Run amrfinder old and new
@@ -131,7 +140,7 @@ data_file_path = prefix + '/asm_data.tab'
 try:
     df = pd.read_csv(data_file_path, sep='\t')
 except FileNotFoundError:
-    print(f"Error: Could not find {data_file_path} to open.")
+    logger.error(f"Could not find {data_file_path} to open")
     exit()
 
 for row in df.itertuples():
@@ -139,7 +148,7 @@ for row in df.itertuples():
     assembly = glob(f"{prefix}/ncbi_dataset/data/{row.asm_acc}/{row.asm_acc}*_genomic.fna")
     # breakpoint()
     if not assembly:
-        print(f"Error: Could not find assembly for {row.asm_acc}")
+        logger.error(f"Could not find assembly for {row.asm_acc}")
     else:
         assembly = assembly[0]
         orgopt = taxgroup2orgopt(row.taxgroup_name)
@@ -149,7 +158,7 @@ for row in df.itertuples():
             f"{amrfinder_old} --nucleotide {assembly} --output {output}",
             f"--threads 8 --organism '{orgopt}' --gpipe_org"])
         if os.path.exists(output) and os.path.getsize(output) > 10:
-            print(f"--- Found {output} so skipping running {amrfinder_old} on {row.asm_acc} ---")
+            logger.info(f"Found {output}, skipping {amrfinder_old} on {row.asm_acc}")
         else:
             runcmd(cmd)
 
@@ -158,7 +167,7 @@ for row in df.itertuples():
             f"{amrfinder_new} --nucleotide {assembly} --output {output}",
             f"--threads 8 --organism '{orgopt}' --gpipe_org"])
         if os.path.exists(output) and os.path.getsize(output) > 10:
-            print(f"--- Found {output} so skipping running {amrfinder_new} on {row.asm_acc} ---")
+            logger.info(f"Found {output}, skipping {amrfinder_new} on {row.asm_acc}")
         else:
             runcmd(cmd)
 
