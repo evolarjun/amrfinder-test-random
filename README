@@ -1,0 +1,69 @@
+Randomly download a bunch of assemblies, run old and new versions of AMRFinderPlus, and compare the outputs.
+
+Plan:
+
+Do it in Python instead of Perl and Shell
+
+Try doing it without GenAI help b/c I want to learn Python
+
+Best if I can make a single script to do the whole process at the end, but initially split it up into different programs.
+
+1. random_pathogen_asm.py - List and download a bunch of assemblies
+2. test_and_compare.py - 
+    Run AMRFinderPlus old and new versions on all of the assemblies
+3. Compare the outputs and highlight the differences
+
+
+# 1st step install uv (?)
+brew install UV
+
+# 2nd step initialize directory
+# 1619 Arjuns-MacBook-Air-3:/Users/aprasad/dev> uv init test_amr
+Initialized project `test-amr` at `/Users/aprasad/dev/test_amr`
+
+uv add google-cloud-bigquery
+uv add pandas
+
+# Downloaded google cloud cli from website
+# ran:
+tar xvf google-cloud-cli-darwin-arm.tar
+./google-cloud-sdk/install.sh
+
+# allowed it to add paths to .bash_profile
+
+### Speed up more than 3x by making TMPDIR a ram disk
+
+# Make a 4 gig RAM disk
+# Size is 4096 * 2048 = 8388608
+diskutil erasevolume APFS 'RAMtemp' $(hdiutil attach -nobrowse -nomount ram://8388608)
+# Set TMPDIR to the new RAMtemp
+export TMPDIR=/Volumes/RAMtemp
+
+uv run random_pathogen_asm.py
+
+# To eject the disk and free up the RAM:
+export TMPDIR=/tmp && diskutil eject /Volumes/RAMtemp
+
+### Comparison
+uv add filecomp
+uv run compare_test.py
+
+##### Comparison notes
+
+test5kleb/amrfinder_new/GCA_021853685.1.amrfinder_new
+- fosA is 3 nucleotides shorter on the negative strand and 3 nucleotides longer on the positive strand ??? Need to look closer
+- maybe I'm misinterpreting
+
+test5kleb/amrfinder_new/GCA_021861225.1.amrfinder_new
+- fosA by start/stop coordinates is 3 nucleotides longer on both positive and negative strands
+- fosA length of hit is 139 in new, but 138 in old coverage is greater % identity is lower, this is a positive change
+
+test4/amrfinder_new/GCA_026275425.2.amrfinder_new
+- New fosB hit appears. Probably a positive change, but should look closer to understand it
+
+test4/amrfinder_new/GCA_036577005.1.amrfinder_new
+- dfrA -> dfrA27, coordinates did not change, not sure why appearing now, look closer to understand it
+
+test3/amrfinder_new/GCA_053265575.1.amrfinder_new
+- New NA gene... ABB80390.1 - not sure why no gene symbol, but probably because intermediate database
+
