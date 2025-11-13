@@ -147,7 +147,7 @@ for row in df.itertuples():
         output = f"{dir_old}/{row.asm_acc}.amrfinder_old"
         cmd = " ".join([
             f"{amrfinder_old} --nucleotide {assembly} --output {output}",
-            f"--threads 8 --organism '{orgopt}' --gpipe_org"])
+            f"--threads 4 --organism '{orgopt}' --gpipe_org"])
         if os.path.exists(output) and os.path.getsize(output) > 10:
             print(f"--- Found {output} so skipping running {amrfinder_old} on {row.asm_acc} ---")
         else:
@@ -156,7 +156,7 @@ for row in df.itertuples():
         output = f"{dir_new}/{row.asm_acc}.amrfinder_new"
         cmd = " ".join([
             f"{amrfinder_new} --nucleotide {assembly} --output {output}",
-            f"--threads 8 --organism '{orgopt}' --gpipe_org"])
+            f"--threads 4 --organism '{orgopt}' --gpipe_org"])
         if os.path.exists(output) and os.path.getsize(output) > 10:
             print(f"--- Found {output} so skipping running {amrfinder_new} on {row.asm_acc} ---")
         else:
