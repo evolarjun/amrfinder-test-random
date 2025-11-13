@@ -1,5 +1,7 @@
 Randomly download a bunch of assemblies, run old and new versions of AMRFinderPlus, and compare the outputs.
 
+NOTE: This is initially a one-off only designed to run on my laptop one-time. It has not been written to be flexible or portable.
+
 Plan:
 
 Do it in Python instead of Perl and Shell
