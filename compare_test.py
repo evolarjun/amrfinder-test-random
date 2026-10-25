@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 import filecmp
 import os
+import shutil
 import subprocess
 import logging
 
@@ -71,6 +72,12 @@ argparser.add_argument(
         type=str,
         help="The directory created by random_pathogen_asm.py"
         )
+argparser.add_argument(
+        '--status-file',
+        type=str,
+        default=None,
+        help="File to record comparison classifications (default: <directory>/comparison_status.txt)"
+        )
 args = argparser.parse_args()
 
 try:
@@ -80,12 +87,52 @@ except FileNotFoundError:
     # Handle the error gracefully or re-raise
     raise
 
-for acc in df.asm_acc:
-    old = f"{args.directory}/amrfinder_old/{acc}.amrfinder_old"
-    new = f"{args.directory}/amrfinder_new/{acc}.amrfinder_new"
-    # check if different
-    if check_files_identical(old, new):
-        logger.info(f"Files for {acc} are identical")
-    else:
-        runcmd(f"vimdiff {old} {new}")
+status_file = args.status_file if args.status_file else os.path.join(args.directory, "comparison_status.txt")
+
+# Read existing classifications to skip already classified comparisons
+classified = {}
+if os.path.exists(status_file):
+    with open(status_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t") if "\t" in line else line.split()
+            acc = parts[0].strip()
+            status = parts[1].strip() if len(parts) > 1 else "classified"
+            classified[acc] = status
+    logger.info(f"Loaded {len(classified)} previously classified comparison(s) from {status_file}")
+
+use_cdiff = shutil.which("cdiff") is not None
+
+try:
+    for acc in df.asm_acc:
+        acc = str(acc)
+        if acc in classified:
+            logger.info(f"Skipping {acc}: already classified as {classified[acc]}")
+            continue
+
+        old = f"{args.directory}/amrfinder_old/{acc}.amrfinder_old"
+        new = f"{args.directory}/amrfinder_new/{acc}.amrfinder_new"
+        # check if different
+        if check_files_identical(old, new):
+            logger.info(f"Files for {acc} are identical")
+        else:
+            if use_cdiff:
+                runcmd(f"cdiff {old} {new} | less -SR", check=False)
+            else:
+                runcmd(f"vimdiff {old} {new}", check=False)
+
+            response = input("Is this comparison OK? [s]crutinize further or any other key to continue: ")
+            if response.strip().lower().startswith("s"):
+                status = "scrutinize"
+            else:
+                status = "OK"
+
+            with open(status_file, "a") as f:
+                f.write(f"{acc}\t{status}\n")
+            classified[acc] = status
+            logger.info(f"Recorded {acc} as {status}")
+except (KeyboardInterrupt, EOFError):
+    logger.info("Exiting on user interrupt.")
     

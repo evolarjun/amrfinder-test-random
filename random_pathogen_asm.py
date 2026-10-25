@@ -25,13 +25,13 @@ select i.biosample_acc, i.asm_acc, i.taxgroup_name, i.asm_level, i.Platform, i.R
 from `ncbi-pathogen-detect.pdbrowser.isolates` i tablesample system(20 percent)
 where i.asm_acc is not NULL
 order by rand()
-limit 1000
+limit 2000
 """
 
-prefix = "test6random"
+prefix = "test1"
 
-amrfinder_old = "/netmnt/vast01/pd/usr/work/bin/amrfinder"
-amrfinder_new = "/home/aprasad/amrfinder/src/amrfinder"
+amrfinder_old = "4.2.7/amrfinder"
+amrfinder_new = "4.2.17/amrfinder"
 
 def runcmd(*args, shell=True, capture_output=False, check=True, debug=debug):
     """run a shell command
@@ -154,6 +154,7 @@ for row in df.itertuples():
         orgopt = taxgroup2orgopt(row.taxgroup_name)
 
         output = f"{dir_old}/{row.asm_acc}.amrfinder_old"
+        ### AMRFinderPLus commands: 
         cmd = " ".join([
             f"{amrfinder_old} --nucleotide {assembly} --output {output}",
             f"--threads 8 --organism '{orgopt}' --gpipe_org"])

@@ -1,4 +1,4 @@
-Randomly download a bunch of assemblies, run old and new versions of AMRFinderPlus, and compare the outputs.
+Randomly download a bunch of assemblies, run old and new versions of AMRFinderPlus, qand compare the outputs.
 
 NOTE: This is initially a one-off only designed to run on my laptop one-time. It has not been written to be flexible or portable.
 
@@ -35,11 +35,16 @@ tar xvf google-cloud-cli-darwin-arm.tar
 
 ### Speed up more than 3x by making TMPDIR a ram disk
 
-# Make a 4 gig RAM disk
+# Make a 4 gig RAM disk under MacOS
 # Size is 4096 * 2048 = 8388608
-diskutil erasevolume APFS 'RAMtemp' $(hdiutil attach -nobrowse -nomount ram://8388608)
+# size=$(( 4096 * 2048 ))
+# 3 gig
+size=$(( 3 * 2097152 ))
+diskutil erasevolume APFS 'RAMtemp' $(hdiutil attach -nobrowse -nomount ram://$size)
 # Set TMPDIR to the new RAMtemp
 export TMPDIR=/Volumes/RAMtemp
+
+
 
 uv run random_pathogen_asm.py
 
